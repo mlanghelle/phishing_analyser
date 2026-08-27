@@ -26,3 +26,5 @@ email provider.
 I recommend setting up a separate email address for this purpose,
 as the current implementation deletes incoming messages after
 retrieving them.
+
+Please forward any questions to Magnus Langhelle (mlanghelle@icloud.com)

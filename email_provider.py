@@ -1,28 +1,15 @@
 """
 Email provider interface.
 
-This file is responsible for connecting to the user's chosen email
-provider and retrieving incoming messages.
+This file handles connecting to the email provider and retrieving
+incoming messages.
 
-When setting up the project, configure this file to work with your
-preferred email service (e.g. Gmail, Outlook, or another provider).
+The current implementation uses the Gmail API. Users need to provide
+their own credentials.json. token.json is generated locally after
+authentication.
 
-The get_messages() function returns a list of messages. Each message
-contains a provider-specific ID and the decoded raw email.
-
-If no messages are available, an empty list is returned.
-
-The delete_message(id) function deletes a processed message from the
-configured email inbox. This is done for privacy and security purposes,
-and because retention settings have not yet been implemented.
-
-Provider-specific authentication and API code should remain in this file
-so that the rest of the application remains independent of the email
-provider being used.
-
-The current implementation uses the Google Gmail API. Users must provide
-their own credentials.json and authenticate with their own Google account.
-The resulting token.json is generated locally.
+get_messages() returns a list containing the message ID and raw email.
+delete_message() deletes a processed message from the inbox.
 """
 
 import os.path
