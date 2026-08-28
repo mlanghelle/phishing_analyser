@@ -21,6 +21,10 @@ from email.parser import BytesParser
 def parse(message):
     msg = BytesParser(policy=policy.default).parsebytes(message["raw"])
 
+    # Check to see if mail recieved actually is forwarded
+    if "Fwd: " not in msg["subject"] and "Vs: " not in msg["subject"]:
+        return None
+
     message_data = {
         "from": msg["From"],
         "to": msg["To"],
@@ -54,9 +58,19 @@ print(f"Found {len(messages)} messages.")
 iterator = 0
 for email in messages:
     iterator += 1
-    print(f"- - - - - Message nr: {iterator} - - - - -")
+    print(f"- - - - - Message nr: {iterator} - - - - -" + "\n")
 
     parsedMsg = parse(email)
-    print(parsedMsg["attachments"])
+
+    if not parsedMsg:
+        print("Message skipped, not forwarded")
+        # Send instructions to sender ("Fwd: " must be in subject)
+        continue
+
+
+
+    for item in parsedMsg:
+        print(f"-- {item}: --".upper())
+        print(parsedMsg[item])
 
     #delete_message(email["id"])
