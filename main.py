@@ -13,6 +13,9 @@ Provider-specific code should not be added here.
 Author: Magnus Langhelle
 """
 
+# TODO: Phishing email header and body will be located in the body
+#       of the outer email, and must be extracted accordingly.
+
 from email_provider import get_messages, delete_message
 from email import policy
 from email.parser import BytesParser
@@ -21,7 +24,7 @@ from email.parser import BytesParser
 def parse(message):
     msg = BytesParser(policy=policy.default).parsebytes(message["raw"])
 
-    # Check to see if mail recieved actually is forwarded
+    # Dont analyse non-forwarded emails
     if "Fwd: " not in msg["subject"] and "Vs: " not in msg["subject"]:
         return None
 
@@ -65,9 +68,8 @@ for email in messages:
     if not parsedMsg:
         print("Message skipped, not forwarded")
         # Send instructions to sender ("Fwd: " must be in subject)
+        delete_message(email["id"])
         continue
-
-
 
     for item in parsedMsg:
         print(f"-- {item}: --".upper())
