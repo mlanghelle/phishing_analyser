@@ -13,37 +13,38 @@ Provider-specific code should not be added here.
 Author: Magnus Langhelle
 """
 
-# TODO: Phishing email header and body will be located in the body
-#       of the outer email, and must be extracted accordingly.
+# TODO: Phishing email header and body will be located in the body of the outer email, and must be extracted accordingly.
+# TODO: Similar emails forwarded using different services might be handled differently.
 
 from email_provider import get_messages, delete_message
 from email import policy
 from email.parser import BytesParser
 
 # Parse to EmailMessage object, then dictrionary
-def parse(message):
-    msg = BytesParser(policy=policy.default).parsebytes(message["raw"])
+def parse(outer):
+    outer_msg = BytesParser(policy=policy.default).parsebytes(outer["raw"])
 
     # Dont analyse non-forwarded emails
-    if "Fwd: " not in msg["subject"] and "Vs: " not in msg["subject"]:
+    if "Fwd: " not in outer_msg["subject"] and "Vs: " not in outer_msg["subject"]:
         return None
 
+    inner = outer_msg.get_body(preferencelist=("plain", "html"))
+    inner_msg = inner.get_content()
+
+    if not inner_msg:
+        return None
+
+    """
     message_data = {
         "from": msg["From"],
         "to": msg["To"],
         "cc": msg["Cc"],
         "subject": msg["Subject"],
-        "date": msg["Date"],
         "message_id": msg["Message-ID"],
         "headers": dict(msg.items()),
         "body": None,
         "attachments": []
     }
-
-    body = msg.get_body(preferencelist=("plain", "html"))
-
-    if body:
-        message_data["body"] = body.get_content()
 
     for attachment in msg.iter_attachments():
         current_attachement = dict()
@@ -52,27 +53,20 @@ def parse(message):
         current_attachement["content"] = attachment.get_payload(decode=True)
 
         message_data["attachments"].append(current_attachement)
+    """
 
-    return message_data
+    return inner_msg, inner
 
 messages = get_messages()
 print(f"Found {len(messages)} messages.")
 
-iterator = 0
 for email in messages:
-    iterator += 1
-    print(f"- - - - - Message nr: {iterator} - - - - -" + "\n")
+    body, full = parse(email)
 
-    parsedMsg = parse(email)
-
-    if not parsedMsg:
-        print("Message skipped, not forwarded")
+    if not body:
+        print("Message skipped")
         # Send instructions to sender ("Fwd: " must be in subject)
         delete_message(email["id"])
         continue
-
-    for item in parsedMsg:
-        print(f"-- {item}: --".upper())
-        print(parsedMsg[item])
 
     #delete_message(email["id"])
