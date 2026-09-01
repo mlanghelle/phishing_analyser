@@ -87,3 +87,6 @@ def delete_message(message_id):
         userId="me",
         id=message_id
     ).execute()
+
+def send_message(message, recipient):
+    print("Not yet implemented..")

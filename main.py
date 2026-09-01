@@ -13,9 +13,6 @@ Provider-specific code should not be added here.
 Author: Magnus Langhelle
 """
 
-# TODO: Phishing email header and body will be located in the body of the outer email, and must be extracted accordingly.
-# TODO: Similar emails forwarded using different services might be handled differently.
-
 from email_provider import get_messages, delete_message
 from email import policy
 from email.parser import BytesParser
