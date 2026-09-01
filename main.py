@@ -23,6 +23,8 @@ from email.parser import BytesParser
 # Parse to EmailMessage object, then dictrionary
 def parse(outer):
     outer_msg = BytesParser(policy=policy.default).parsebytes(outer["raw"])
+    #for key in outer_msg.keys():
+    #    print(f"{key}: "  + outer_msg[key] + "\n")
 
     # Dont analyse non-forwarded emails
     if "Fwd: " not in outer_msg["subject"] and "Vs: " not in outer_msg["subject"]:
@@ -33,6 +35,13 @@ def parse(outer):
 
     if not inner_msg:
         return None
+
+    print(inner_msg)
+
+    email_object = {
+        "body": inner_msg,
+        "test": outer_msg["From"],
+    }
 
     """
     message_data = {
@@ -55,18 +64,23 @@ def parse(outer):
         message_data["attachments"].append(current_attachement)
     """
 
-    return inner_msg, inner
+    return email_object
 
 messages = get_messages()
-print(f"Found {len(messages)} messages.")
 
 for email in messages:
-    body, full = parse(email)
+    object = parse(email)
 
-    if not body:
+    if not object:
         print("Message skipped")
         # Send instructions to sender ("Fwd: " must be in subject)
-        delete_message(email["id"])
+        #delete_message(email["id"])
         continue
+
+    #if object["attachements"][0]:
+        #do something
+
+    #if object["links"][0]:
+        #do something
 
     #delete_message(email["id"])
