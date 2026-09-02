@@ -52,7 +52,6 @@ def parse(outer):
         current_attachment["content_type"] = attachment.get_content_type()
         current_attachment["content"] = attachment.get_payload(decode=True)
 
-
     # add all links to web_links
 
     # add phisher
@@ -62,14 +61,11 @@ def parse(outer):
     return email_object
 
 messages = get_messages()
-
 for email in messages:
     object = parse(email)
-
     if not object["Forwarded"]:
         print("Message skipped")
-        # Send instructions to sender ("Fwd: " must be in subject)
-        # report = generate_report(None)
+        # report = generate_report(None) -> (Missing inner body or "Fwd: " in subject line)
         # send_email()
         # delete_message(email["id"])
         continue
