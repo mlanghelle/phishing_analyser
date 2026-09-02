@@ -1,5 +1,6 @@
 credentials.json
 token.json
+notes.txt
 
 .venv/
 __pycache__/
