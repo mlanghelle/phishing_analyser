@@ -22,7 +22,6 @@ from googleapiclient.discovery import build
 
 SCOPES = ["https://mail.google.com/"]
 
-
 def get_service():
     creds = None
 
