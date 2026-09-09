@@ -22,8 +22,8 @@ from email.parser import BytesParser
 # Look for possible phish-sender in the body. 
 # First email listed, not identical to user, is likely to be phisher.
 def getPhisher(email_object):
+    allowed_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._%+-"
     found_emails = []
-    angle_bracket_at_index = []
     at_indexes = []
     body = email_object["body"]
 
@@ -32,38 +32,35 @@ def getPhisher(email_object):
         if body[i] == "<":
             for j in range(i, len(body)):
                 if body[j] == ">":
-                    found_emails.append(body[i+1:j])
-                elif body[j] == "@":
-                    angle_bracket_at_index.append(j)
+                    pos_email = body[i+1:j]
+                    if "@" in pos_email and "." in pos_email:
+                        found_emails.append(pos_email)
+                    break
         elif body[i] == "@":
-            if i not in angle_bracket_at_index:
-                at_indexes.append(i)
+            at_indexes.append(i)
 
-    # Investigate all possible emails found
     for index in at_indexes:
         pos_start = None
         pos_end = None
         pos_email = ""
-        for i in range(index-1, 0, -1):
-            if body[i] in " \r\n":
+        for i in range(index-1, -1, -1):
+            if body[i] not in allowed_chars:
                 pos_start = i+1
                 break
         for i in range(index+1, len(body)):
-            if body[i] in " \r\n":
+            if body[i] not in allowed_chars:
                 pos_end = i
                 break
 
         if pos_start is not None and pos_end is not None:
             pos_email = body[pos_start:pos_end]
-            if pos_email not in found_emails:
-                found_emails.append(pos_email)
+            if "@" in pos_email and "." in pos_email:
+                if pos_email not in found_emails:
+                    found_emails.append(pos_email)
 
-    #print(found_emails)
-    print(found_emails)
     for email in found_emails:
-        if "@" in email and "." in email:
-            if email != email_object["user"]:
-                return email
+        if email != email_object["user"]:
+            return email
 
 #def getWebLinks(email_object):
 
