@@ -21,6 +21,8 @@ from email.parser import BytesParser
 
 # Look for possible phish-sender in the body. 
 # First email listed, not identical to user, is likely to be phisher.
+# Return single email if only one found, except for user.
+# Return list if multiple, index 0 is likely to be phisher.
 def getPhisher(email_object):
     allowed_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._%+-"
     found_emails = []
@@ -58,12 +60,38 @@ def getPhisher(email_object):
                 if pos_email not in found_emails:
                     found_emails.append(pos_email)
 
-    for email in found_emails:
-        if email != email_object["user"]:
-            return email
+    found_emails.remove(email_object["user"])
+    if len(found_emails) == 1:
+        return found_emails[0]
+    return found_emails
 
-#def getWebLinks(email_object):
+# returns index of first instance found in text
+def findNext(instance, text):
+    for index in range(len(text)):
+        if text[index] == instance:
+            return index
 
+def curl(link):
+    # not implementet (obviously)
+    return True
+
+def getWebLinks(email_object):
+    # Save links as key, formatted html "link" as value
+    # If value is different then key = suspicious; -> attacker is attempting to trick user
+    web_links = []
+    raw = email_object["raw_body"].get_content().split("href")
+    for split in raw:
+        start = findNext('"', split)
+        end = findNext('"', split[start+1:-1])
+        current_link = split[start+1:start+end+1]
+        if "." in current_link:
+            if curl(current_link):
+                web_links.append(current_link)
+
+    return web_links
+            # start of link is next ' " '
+            # end of link is second next ' " '
+    
 # Parse to EmailMessage object
 def parse(outer):
     outer_msg = BytesParser(policy=policy.default).parsebytes(outer["raw"])
@@ -75,10 +103,10 @@ def parse(outer):
         "body": None,
         "raw_body":None,
         "phisher": None,
-        "reply-to": None,
+        "reply_to": None,
         "subject": outer_msg["Subject"],
         "attachments": [],
-        "web-links":[],
+        "web_links":None,
     }
 
     # Dont analyse non-forwarded emails
@@ -100,10 +128,10 @@ def parse(outer):
         current_attachment["filename"] = attachment.get_filename()
         current_attachment["content_type"] = attachment.get_content_type()
         current_attachment["content"] = attachment.get_payload(decode=True)
+        email_object["attachments"].append(current_attachment)
 
     email_object["phisher"] = getPhisher(email_object)
-
-    #email_object["web-links"] = getWebLinks(email_object)
+    email_object["web_links"] = getWebLinks(email_object)
 
     # look for reply-to
 
@@ -112,12 +140,21 @@ def parse(outer):
 messages = get_messages()
 for email in messages:
     object = parse(email)
+    print(object["body"])
+    print("-- Found links: " + f"{object["web_links"]}")
+    print("-"*35 + "\n")
+
+    # do something with sender(s) regardless
 
     #if object["attachments"][0]:
         #do something
 
     #if object["web-links"][0]:
         #do something
+
+    # analyze language
+
+    # analyze wording ("click here" etc)
 
     report = None
     #if object["forwarded"]:
