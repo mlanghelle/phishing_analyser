@@ -72,13 +72,13 @@ def findNext(instance, text):
             return index
 
 def curl(link):
-    # not implementet (obviously)
+    # TODO: not implementet (obviously)
     return True
 
 def getWebLinks(email_object):
     # Save links as key, formatted html "link" as value
     # If value is different then key = suspicious; -> attacker is attempting to trick user
-    web_links = []
+    web_links = dict()
     raw = email_object["raw_body"].get_content().split("href")
     for split in raw:
         start = findNext('"', split)
@@ -86,7 +86,14 @@ def getWebLinks(email_object):
         current_link = split[start+1:start+end+1]
         if "." in current_link:
             if curl(current_link):
-                web_links.append(current_link)
+                # not able to get index of currentlink without major hassle,
+                # so next steps must be completed within this if statement.
+                # TODO: Find anchor text which uses the current_link, add to dict.
+                # TODO: Not working, indexing issues.
+                anchor_start = findNext('>', split[end:-1])
+                anchor_end = findNext('<', split[anchor_start:-1])
+                current_anchor = split[anchor_start+1:anchor_start+anchor_end+1]
+                web_links[current_link] = current_anchor
 
     return web_links
             # start of link is next ' " '
@@ -140,8 +147,8 @@ def parse(outer):
 messages = get_messages()
 for email in messages:
     object = parse(email)
-    print(object["body"])
-    print("-- Found links: " + f"{object["web_links"]}")
+    print("-- Links: " + f"{object["web_links"]}")
+    print(object["raw_body"])
     print("-"*35 + "\n")
 
     # do something with sender(s) regardless
