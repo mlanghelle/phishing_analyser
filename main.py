@@ -17,8 +17,13 @@ from email_provider import get_messages, delete_message
 from email import policy
 from email.parser import BytesParser
 
-# TODO: Should save found web-links in dict - if key and value are different, is red flag.
+# returns index of first instance found in text
+def findNext(instance, text):
+    for index in range(len(text)):
+        if text[index] == instance:
+            return index
 
+# TODO: major logic faults here.
 # Look for possible phish-sender in the body. 
 # First email listed, not identical to user, is likely to be phisher.
 # Return single email if only one found, except for user.
@@ -26,7 +31,6 @@ from email.parser import BytesParser
 def getPhisher(email_object):
     allowed_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._%+-"
     found_emails = []
-    at_indexes = []
     body = email_object["body"]
 
     # Given addresses are presented as <email>
@@ -38,44 +42,19 @@ def getPhisher(email_object):
                     if "@" in pos_email and "." in pos_email:
                         found_emails.append(pos_email)
                     break
-        elif body[i] == "@":
-            at_indexes.append(i)
-
-    for index in at_indexes:
-        pos_start = None
-        pos_end = None
-        pos_email = ""
-        for i in range(index-1, -1, -1):
-            if body[i] not in allowed_chars:
-                pos_start = i+1
-                break
-        for i in range(index+1, len(body)):
-            if body[i] not in allowed_chars:
-                pos_end = i
-                break
-
-        if pos_start is not None and pos_end is not None:
-            pos_email = body[pos_start:pos_end]
-            if "@" in pos_email and "." in pos_email:
-                if pos_email not in found_emails:
-                    found_emails.append(pos_email)
-
-    found_emails.remove(email_object["user"])
+    try:
+        found_emails.remove(email_object["user"])
+    except ValueError:
+        pass
     if len(found_emails) == 1:
         return found_emails[0]
     return found_emails
-
-# returns index of first instance found in text
-def findNext(instance, text):
-    for index in range(len(text)):
-        if text[index] == instance:
-            return index
 
 def curl(link):
     # TODO: not implementet (obviously)
     return True
 
-def getWebLinks(email_object):
+def findWebLinks(email_object):
     # Save links as key, formatted html "link" as value
     # If value is different then key = suspicious; -> attacker is attempting to trick user
     web_links = dict()
@@ -85,19 +64,21 @@ def getWebLinks(email_object):
         end = findNext('"', split[start+1:-1])
         current_link = split[start+1:start+end+1]
         if "." in current_link:
+            if "mailto:" in current_link:
+                mail = current_link.split("mailto:")[1]
+                if mail == email_object["user"] or mail == email_object["phisher"]:
+                    continue
             if curl(current_link):
-                # not able to get index of currentlink without major hassle,
-                # so next steps must be completed within this if statement.
-                # TODO: Find anchor text which uses the current_link, add to dict.
-                # TODO: Not working, indexing issues.
-                anchor_start = findNext('>', split[end:-1])
-                anchor_end = findNext('<', split[anchor_start:-1])
-                current_anchor = split[anchor_start+1:anchor_start+anchor_end+1]
+                anchor_start = findNext('>', split[end+1:-1])
+                anchor_end = findNext('<', split[end+anchor_start+1:-1])
+                current_anchor = split[end+1 + anchor_start+1:end + anchor_start+anchor_end+1]
+                if "\r" in current_anchor or "\n" in current_anchor:
+                    current_anchor = current_anchor.replace("\r", "")
+                    current_anchor = current_anchor.replace("\n", "")
                 web_links[current_link] = current_anchor
-
-    return web_links
-            # start of link is next ' " '
-            # end of link is second next ' " '
+    if len(web_links) > 0:
+        return web_links
+    return None
     
 # Parse to EmailMessage object
 def parse(outer):
@@ -112,7 +93,7 @@ def parse(outer):
         "phisher": None,
         "reply_to": None,
         "subject": outer_msg["Subject"],
-        "attachments": [],
+        "attachments": None,
         "web_links":None,
     }
 
@@ -130,15 +111,19 @@ def parse(outer):
     email_object["body"] = inner_msg
     email_object["raw_body"] = outer_msg.get_body()
 
-    for attachment in outer_msg.iter_attachments():
-        current_attachment = dict()
-        current_attachment["filename"] = attachment.get_filename()
-        current_attachment["content_type"] = attachment.get_content_type()
-        current_attachment["content"] = attachment.get_payload(decode=True)
-        email_object["attachments"].append(current_attachment)
+    attachments = []
+    #for attachment in outer_msg.iter_attachments():
+    #    current_attachment = dict()
+    #    current_attachment["filename"] = attachment.get_filename()
+    #    current_attachment["content_type"] = attachment.get_content_type()
+    #    current_attachment["content"] = attachment.get_payload(decode=True)
+    #    attachments.append(current_attachment)
+
+    if len(attachments) > 0:
+        email_object["attachments"] = attachments
 
     email_object["phisher"] = getPhisher(email_object)
-    email_object["web_links"] = getWebLinks(email_object)
+    email_object["web_links"] = findWebLinks(email_object)
 
     # look for reply-to
 
@@ -147,24 +132,23 @@ def parse(outer):
 messages = get_messages()
 for email in messages:
     object = parse(email)
-    print("-- Links: " + f"{object["web_links"]}")
-    print(object["raw_body"])
-    print("-"*35 + "\n")
-
-    # do something with sender(s) regardless
-
-    #if object["attachments"][0]:
-        #do something
-
-    #if object["web-links"][0]:
-        #do something
-
-    # analyze language
-
-    # analyze wording ("click here" etc)
 
     report = None
-    #if object["forwarded"]:
+    if object["forwarded"]:
+        print("-- Links" + f"{object["web_links"]}")
+        print("-- Phisher: " f"{object["phisher"]}")
+        # do something with sender(s) regardless, domain reputation (?)
+
+        #if object["attachments"]:
+            #do something
+
+        #if object["web-links"]:
+            #do something
+
+        # analyze language
+
+        # analyze wording ("click here" etc)
+
         # report = generate_report(object)
     
     # send_email(object["user"], report) (send_email(None) -> (Missing inner body or "Fwd: " in subject line))
