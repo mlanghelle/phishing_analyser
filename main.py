@@ -13,6 +13,7 @@ Provider-specific code should not be added here.
 Author: Magnus Langhelle
 """
 
+from email_provider import GLOBAL_MAIL
 from email_provider import get_messages, delete_message
 from email import policy
 from email.parser import BytesParser
@@ -23,36 +24,41 @@ def findNext(instance, text):
         if text[index] == instance:
             return index
 
-# TODO: major logic faults here.
-# Look for possible phish-sender in the body. 
-# First email listed, not identical to user, is likely to be phisher.
-# Return single email if only one found, except for user.
-# Return list if multiple, index 0 is likely to be phisher.
-def getPhisher(email_object):
-    allowed_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._%+-"
-    found_emails = []
-    body = email_object["body"]
-
-    # Given addresses are presented as <email>
-    for i in range(len(body)):
-        if body[i] == "<":
-            for j in range(i, len(body)):
-                if body[j] == ">":
-                    pos_email = body[i+1:j]
-                    if "@" in pos_email and "." in pos_email:
-                        found_emails.append(pos_email)
-                    break
-    try:
-        found_emails.remove(email_object["user"])
-    except ValueError:
-        pass
-    if len(found_emails) == 1:
-        return found_emails[0]
-    return found_emails
-
 def curl(link):
     # TODO: not implementet (obviously)
     return True
+
+def getPhisher(email_object):
+    GLOBAL_PHISHER = None
+    whitelist = [GLOBAL_MAIL, email_object["user"]]
+    allowed_chars = "abcdefghijklmnopqrstuvwxyzæøå0123456789._%+-"
+    found_emails = []
+    body = email_object["body"].lower()
+
+    if "from: " in body or "fra: " in body:
+        start = findNext('<', body)
+        end = findNext('>', body[start+1:-1]) + start
+        GLOBAL_PHISHER = body[start+1:end+1]
+
+    for i in range(len(body)):
+        if body[i] == "@":
+            start = i-1
+            try:
+                while body[start] in allowed_chars:
+                    start -= 1
+            except IndexError:
+                continue
+            start +=1
+            end = i+1
+            try:
+                while body[end] in allowed_chars:
+                    end += 1
+            except IndexError:
+                continue
+            email = body[start:end]
+            if "." in email.split("@")[1] and " " not in email and email not in whitelist and email not in found_emails:
+                found_emails.append(email) # email contains "." after "@"
+    return found_emails
 
 def findWebLinks(email_object):
     # Save links as key, formatted html "link" as value
@@ -135,8 +141,8 @@ for email in messages:
 
     report = None
     if object["forwarded"]:
-        print("-- Links" + f"{object["web_links"]}")
-        print("-- Phisher: " f"{object["phisher"]}")
+        print(object["phisher"])
+        print(GLOBAL_PHISHER)
         # do something with sender(s) regardless, domain reputation (?)
 
         #if object["attachments"]:

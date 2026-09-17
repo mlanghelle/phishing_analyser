@@ -12,6 +12,9 @@ get_messages() returns a list containing the message ID and raw email.
 delete_message() deletes a processed message from the inbox.
 """
 
+# Address of your email
+GLOBAL_MAIL = "magnus.phish@gmail.com"
+
 import os.path
 import base64
 
