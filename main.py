@@ -57,8 +57,15 @@ def getPhisher(email_object):
                 continue
             email = body[start:end]
             if "." in email.split("@")[1] and " " not in email and email not in whitelist and email not in found_emails:
+<<<<<<< Updated upstream
                 found_emails.append(email)
     return found_emails
+=======
+                found_emails.append(email) # email contains "." after "@"
+    if GLOBAL_PHISHER:
+        return GLOBAL_PHISHER, found_emails
+    return False, found_emails
+>>>>>>> Stashed changes
 
 def findWebLinks(email_object):
     # Save links as key, formatted html "link" as value
@@ -86,6 +93,23 @@ def findWebLinks(email_object):
         return web_links
     return None
     
+def getDomains(link_dict):
+    #TODO: implement, need a short summary of domains of the web_links
+    domains = set()
+    list = []
+    if link_dict:
+        for url in link_dict.keys():
+            for i in range(len(url)):
+                if url[i] == "/":
+                    try:
+                        if url[i+1] == "/" or url[i-1] == "/":
+                            continue
+                    except IndexError:
+                        pass
+                    domains.add(url[0:i])
+                    break
+    return domains
+
 # Parse to EmailMessage object
 def parse(outer):
     outer_msg = BytesParser(policy=policy.default).parsebytes(outer["raw"])
@@ -128,8 +152,12 @@ def parse(outer):
     if len(attachments) > 0:
         email_object["attachments"] = attachments
 
-    email_object["phisher"] = getPhisher(email_object)
-    email_object["web_links"] = findWebLinks(email_object)
+    GLOBAL_PHISHER, email_object["phish_list"] = getPhisher(email_object)
+    if GLOBAL_PHISHER:
+        email_object["global_phisher"] = GLOBAL_PHISHER
+    email_object["urls"] = findWebLinks(email_object)
+    if email_object["urls"]:
+        email_object["domains"] = getDomains(email_object["urls"])
 
     # look for reply-to
 
@@ -141,8 +169,7 @@ for email in messages:
 
     report = None
     if object["forwarded"]:
-        print(object["phisher"])
-        print(GLOBAL_PHISHER)
+        print(object["domains"])
         # do something with sender(s) regardless, domain reputation (?)
 
         #if object["attachments"]:
