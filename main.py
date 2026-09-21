@@ -57,7 +57,7 @@ def getPhisher(email_object):
                 continue
             email = body[start:end]
             if "." in email.split("@")[1] and " " not in email and email not in whitelist and email not in found_emails:
-                found_emails.append(email) # email contains "." after "@"
+                found_emails.append(email)
     return found_emails
 
 def findWebLinks(email_object):
@@ -118,12 +118,12 @@ def parse(outer):
     email_object["raw_body"] = outer_msg.get_body()
 
     attachments = []
-    #for attachment in outer_msg.iter_attachments():
-    #    current_attachment = dict()
-    #    current_attachment["filename"] = attachment.get_filename()
-    #    current_attachment["content_type"] = attachment.get_content_type()
-    #    current_attachment["content"] = attachment.get_payload(decode=True)
-    #    attachments.append(current_attachment)
+    for attachment in outer_msg.iter_attachments():
+        current_attachment = dict()
+        current_attachment["filename"] = attachment.get_filename()
+        current_attachment["content_type"] = attachment.get_content_type()
+        current_attachment["content"] = attachment.get_payload(decode=True)
+        attachments.append(current_attachment)
 
     if len(attachments) > 0:
         email_object["attachments"] = attachments

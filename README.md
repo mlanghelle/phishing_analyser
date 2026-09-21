@@ -1,6 +1,6 @@
 # Phishing Email Analyzer
 
-An open-source tool that allows users to forward suspicious emails
+A user-friendly and open-source tool that allows users to forward suspicious emails
 to a designated email address and receive an automated analysis
 of whether the email is likely to be phishing.
 
