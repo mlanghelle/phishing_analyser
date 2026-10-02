@@ -18,15 +18,17 @@ from email_provider import get_messages, delete_message
 from email import policy
 from email.parser import BytesParser
 
+import subprocess
+
 # returns index of first instance found in text
 def findNext(instance, text):
     for index in range(len(text)):
         if text[index] == instance:
             return index
 
-def curl(link):
-    # TODO: not implementet (obviously)
-    return True
+def curl(url):
+    result = subprocess.run(['curl', url], capture_output=True, text=True)
+    return (result.returncode == 0)
 
 def getPhisher(email_object):
     GLOBAL_PHISHER = None
@@ -57,15 +59,10 @@ def getPhisher(email_object):
                 continue
             email = body[start:end]
             if "." in email.split("@")[1] and " " not in email and email not in whitelist and email not in found_emails:
-<<<<<<< Updated upstream
-                found_emails.append(email)
-    return found_emails
-=======
                 found_emails.append(email) # email contains "." after "@"
     if GLOBAL_PHISHER:
         return GLOBAL_PHISHER, found_emails
     return False, found_emails
->>>>>>> Stashed changes
 
 def findWebLinks(email_object):
     # Save links as key, formatted html "link" as value
